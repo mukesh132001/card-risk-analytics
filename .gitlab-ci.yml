@@ -1,0 +1,14 @@
+# GitLab CI mirror of the GitHub Actions pipeline.
+stages:
+  - test
+
+python-tests:
+  stage: test
+  image: python:3.12-slim
+  script:
+    - pip install -r requirements.txt
+    - pytest -v --junitxml=report.xml
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml

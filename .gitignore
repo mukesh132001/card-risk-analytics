@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Data (keep only the small sample)
+data/raw/*
+!data/raw/.gitkeep
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+profiles.yml
+
+# Secrets / IDE / OS
+.env
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

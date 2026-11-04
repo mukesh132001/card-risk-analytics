@@ -1,0 +1,14 @@
+[
+  {"m": "M1", "title": "M1: Load synthetic + public card-fraud data into PostgreSQL", "body": "- [ ] Docker Compose Postgres\n- [ ] Load data/sample/transactions.csv\n- [ ] Load a public card-fraud dataset into data/raw (git-ignored)"},
+  {"m": "M2", "title": "M2: dbt staging and star schema", "body": "- [ ] stg_transactions, stg_customers, stg_merchants\n- [ ] fact_transactions, dim_customer, dim_merchant, dim_date\n- [ ] dbt tests: not_null, unique, accepted_values, relationships"},
+  {"m": "M2", "title": "M2: Analytical SQL (window functions, cohorts)", "body": "- [ ] Running balances and month-over-month spend\n- [ ] Customer cohorts by first-transaction month\n- [ ] Top merchants by fraud rate"},
+  {"m": "M3", "title": "M3: Reconciliation report and data-quality gate", "body": "- [ ] Source vs model totals per month, to the cent\n- [ ] Variance table with pass/fail\n- [ ] Pipeline blocks refresh when a check fails"},
+  {"m": "M3", "title": "M3: Data dictionary, lineage and PII masking", "body": "- [ ] Column-level dictionary (docs/data-dictionary.md)\n- [ ] Lineage diagram (dbt docs)\n- [ ] Mask customer_id in the reporting layer"},
+  {"m": "M4", "title": "M4: Tableau / Power BI risk dashboard", "body": "- [ ] Spend by category and region, active cards, fraud rate\n- [ ] Filters and drill-down\n- [ ] Publish to Tableau Public; screenshots in /dashboards"},
+  {"m": "M4", "title": "M4: Excel monthly MI pack", "body": "- [ ] One-tab summary with lookups and a pivot\n- [ ] Generated from the mart with Python"},
+  {"m": "M5", "title": "M5: Customer segmentation (k-means)", "body": "- [ ] Features: spend, frequency, category mix\n- [ ] Choose k, profile each segment"},
+  {"m": "M5", "title": "M5: Fraud model with model card", "body": "- [ ] Baseline -> logistic regression -> gradient boosting\n- [ ] Precision/recall, PR curve, threshold choice\n- [ ] Plain-English model card"},
+  {"m": "M6", "title": "M6: NLP complaint / dispute classifier (spaCy)", "body": "- [ ] Labeled sample of complaint text\n- [ ] spaCy text classifier, accuracy report\n- [ ] Route to queue, like bank email triage"},
+  {"m": "M7", "title": "M7: Colleague assistant (RAG + MCP tools)", "body": "- [ ] Policy PDFs -> chunks -> embeddings (pgvector)\n- [ ] Claude answers with page citations\n- [ ] MCP tools over card-banking-platform APIs with confirm step\n- [ ] 50-question eval set, 85%+ correct"},
+  {"m": "M8", "title": "M8: Findings memo", "body": "- [ ] Two pages, three recommendations with dollar impact\n- [ ] Linked from README"}
+]
