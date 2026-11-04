@@ -87,6 +87,26 @@ python -m card_analytics.berka --src data/raw/berka --db sqlite:///cardrisk.db
 
 The loader translates Czech codes to English (`PRIJEM` → credit, `VYDAJ` → debit), converts `YYMMDD` dates, derives client gender and birth date from the birth number, flags defaulted loans, and runs 26 integrity checks: row counts, unique keys, foreign keys and date ranges.
 
+### Star schema (M2)
+
+```powershell
+python -m card_analytics.star --db sqlite:///cardrisk.db
+python -m card_analytics.ask sql/business_questions.sql --db sqlite:///cardrisk.db
+```
+
+| Table | Grain | Rows |
+| --- | --- | --- |
+| fact_transactions | one transaction | 1,056,320 |
+| fact_loans | one loan | 682 |
+| dim_account | one account (owner, cards, loan status rolled up) | 4,500 |
+| dim_client | one client (gender, age band) | 5,369 |
+| dim_district | one district (salary, unemployment, crime) | 77 |
+| dim_date | one day, 1993–1998 | 2,191 |
+
+SQL models live in `dbt/models/berka/` in dbt syntax. 15 model tests check unique keys, every fact-to-dimension join, and reconcile the fact table to the source to the cent.
+
+**First findings:** loan holders with a card default 2.9% of the time vs 13.9% without one; default rates range from 1.6% (north Bohemia) to 15.8% (west Bohemia).
+
 ## Related
 
 The transaction platform that produces this data: [card-banking-platform](https://github.com/mukesh132001/card-banking-platform).

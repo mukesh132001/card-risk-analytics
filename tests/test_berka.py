@@ -11,7 +11,7 @@ SAMPLE = {
                 '2;"Benesov";"central Bohemia";88884;80;26;6;2;5;46.7;8507;?;1.85;132;?;2674\n',
     "account": '"account_id";"district_id";"frequency";"date"\n1;1;"POPLATEK MESICNE";930101\n2;2;"POPLATEK TYDNE";930102\n',
     "client": '"client_id";"birth_number";"district_id"\n1;"706213";1\n2;"450204";2\n',
-    "disp": '"disp_id";"client_id";"account_id";"type"\n1;1;1;"OWNER"\n2;2;2;"DISPONENT"\n',
+    "disp": '"disp_id";"client_id";"account_id";"type"\n1;1;1;"OWNER"\n2;2;2;"OWNER"\n3;2;1;"DISPONENT"\n',
     "card": '"card_id";"disp_id";"type";"issued"\n10;1;"classic";931107 00:00:00\n',
     "loan": '"loan_id";"account_id";"date";"amount";"duration";"payments";"status"\n5;1;930705;96396;12;8033.00;"B"\n',
     "order": '"order_id";"account_id";"bank_to";"account_to";"amount";"k_symbol"\n7;1;"YZ";"87144583";2452.00;"SIPO"\n',

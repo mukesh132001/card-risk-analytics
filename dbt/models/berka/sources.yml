@@ -1,0 +1,30 @@
+version: 2
+
+# Clean Berka tables loaded by `python -m card_analytics.berka` (named berka_<table>).
+sources:
+  - name: berka
+    tables:
+      - {name: district, identifier: berka_district}
+      - {name: account,  identifier: berka_account}
+      - {name: client,   identifier: berka_client}
+      - {name: disp,     identifier: berka_disp}
+      - {name: card,     identifier: berka_card}
+      - {name: loan,     identifier: berka_loan}
+      - {name: order,    identifier: berka_order}
+      - {name: trans,    identifier: berka_trans}
+
+models:
+  - name: fact_transactions
+    columns:
+      - {name: trans_id, tests: [unique, not_null]}
+      - {name: account_id, tests: [{relationships: {to: ref('dim_account'), field: account_id}}]}
+      - {name: date_key, tests: [{relationships: {to: ref('dim_date'), field: date_key}}]}
+  - name: dim_account
+    columns:
+      - {name: account_id, tests: [unique, not_null]}
+  - name: dim_client
+    columns:
+      - {name: client_id, tests: [unique, not_null]}
+  - name: dim_district
+    columns:
+      - {name: district_id, tests: [unique, not_null]}
