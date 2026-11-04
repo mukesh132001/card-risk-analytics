@@ -58,13 +58,34 @@ docs/                Data dictionary, lineage, findings memo
 
 ## Quick start
 
-```bash
+```powershell
 python -m venv .venv
-.venv\Scripts\activate          # Windows  (source .venv/bin/activate on macOS/Linux)
+.venv\Scripts\activate                 # Windows  (source .venv/bin/activate on macOS/Linux)
 pip install -r requirements.txt
-python -m card_analytics.generate --rows 5000 --out data/sample/transactions.csv
+$env:PYTHONPATH = "src"                # Windows PowerShell (export PYTHONPATH=src on macOS/Linux)
+
+# 1. Start PostgreSQL (needs Docker Desktop)
+docker compose up -d
+
+# 2. Generate and load 50,000 synthetic transactions, then run the data-quality checks
+python -m card_analytics.generate --rows 50000 --out data/raw/transactions.csv
+python -m card_analytics.load --csv data/raw/transactions.csv
+
+# No Docker? Use SQLite instead:
+python -m card_analytics.load --csv data/raw/transactions.csv --db sqlite:///cardrisk.db
+
 pytest
 ```
+
+### Real bank data: Berka (PKDD'99)
+
+Anonymized data from a real Czech bank, 1993–1998: 4,500 accounts, 5,369 clients, 682 loans, 892 cards and 1,056,320 transactions. Download it (Kaggle: "Berka dataset") into `data/raw/berka/` (git-ignored), then:
+
+```powershell
+python -m card_analytics.berka --src data/raw/berka --db sqlite:///cardrisk.db
+```
+
+The loader translates Czech codes to English (`PRIJEM` → credit, `VYDAJ` → debit), converts `YYMMDD` dates, derives client gender and birth date from the birth number, flags defaulted loans, and runs 26 integrity checks: row counts, unique keys, foreign keys and date ranges.
 
 ## Related
 

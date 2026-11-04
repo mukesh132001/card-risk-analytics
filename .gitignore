@@ -22,3 +22,6 @@ profiles.yml
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Local databases
+*.db
