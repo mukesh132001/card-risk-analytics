@@ -158,3 +158,31 @@ def test_retrieval_meets_the_target_on_the_real_docs():
     docs_qs = [q for q in evaluate.load() if q["type"] == "docs"]
     s = evaluate.summary(evaluate.offline(docs_qs))
     assert s["by_type"]["docs"][0] / s["by_type"]["docs"][1] >= evaluate.TARGET
+
+
+# ---------- friendly API errors ----------
+
+
+def fake_anthropic_error(name, message="boom"):
+    cls = type(name, (Exception,), {"__module__": "anthropic._exceptions"})
+    return cls(message)
+
+
+def test_bad_api_key_gives_a_one_line_fix(monkeypatch, capsys):
+    from card_analytics.assistant import __main__ as cli
+
+    def raise_401(question):
+        raise fake_anthropic_error("AuthenticationError", "Error code: 401 invalid x-api-key")
+
+    monkeypatch.setattr(agent, "answer", raise_401)
+    assert cli.main(["hello"]) == 1
+    out = capsys.readouterr().out
+    assert "rejected the API key" in out and "Traceback" not in out
+
+
+def test_no_credit_and_other_errors_are_explained():
+    from card_analytics.assistant.__main__ import explain_api_error
+
+    assert "no API credit" in explain_api_error(fake_anthropic_error("BadRequestError", "Your credit balance is too low"))
+    assert "Rate limited" in explain_api_error(fake_anthropic_error("RateLimitError"))
+    assert explain_api_error(ValueError("not from anthropic")) is None

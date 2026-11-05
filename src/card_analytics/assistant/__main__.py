@@ -16,6 +16,25 @@ import sys
 
 from card_analytics.assistant import agent, evaluate
 
+HINTS = {
+    "AuthenticationError": "Anthropic rejected the API key (401). Check ANTHROPIC_API_KEY: a real key starts with "
+    "'sk-ant-api' and is about 100 characters long. Create one at console.anthropic.com > API keys.",
+    "PermissionDeniedError": "This API key isn't allowed to use that model (403). Check the key's workspace or set ANTHROPIC_MODEL.",
+    "NotFoundError": "Model not found (404). Set ANTHROPIC_MODEL to a current model ID, e.g. claude-sonnet-5-5.",
+    "RateLimitError": "Rate limited (429). Wait a minute and try again.",
+    "APIConnectionError": "Couldn't reach api.anthropic.com. Check your internet connection or proxy.",
+}
+
+
+def explain_api_error(e: Exception) -> str | None:
+    """A one-line fix for Anthropic API errors, or None if it isn't one."""
+    if not type(e).__module__.startswith("anthropic"):
+        return None
+    name, message = type(e).__name__, str(e)
+    if "credit balance" in message.lower():
+        return "Your Anthropic account has no API credit. Add some at console.anthropic.com > Billing."
+    return HINTS.get(name, f"Anthropic API error ({name}): {message[:300]}")
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -29,7 +48,14 @@ def main(argv: list[str] | None = None) -> int:
         if mode == "online" and not os.environ.get("ANTHROPIC_API_KEY"):
             print("--online needs ANTHROPIC_API_KEY")
             return 2
-        s = evaluate.run(mode)
+        try:
+            s = evaluate.run(mode)
+        except Exception as e:
+            hint = explain_api_error(e)
+            if hint is None:
+                raise
+            print(hint)
+            return 1
         for r in s["results"]:
             if not r["passed"]:
                 print(f"  [FAIL] {r['id']} {r['question']}  (got: {str(r['got'])[:100]})")
@@ -41,7 +67,14 @@ def main(argv: list[str] | None = None) -> int:
     if not args.question:
         parser.print_help()
         return 2
-    ans = agent.answer(" ".join(args.question))
+    try:
+        ans = agent.answer(" ".join(args.question))
+    except Exception as e:
+        hint = explain_api_error(e)
+        if hint is None:
+            raise
+        print(hint)
+        return 1
     print(ans.text)
     if ans.tool_calls and not ans.offline:
         print("\nTools used: " + ", ".join(c["tool"] for c in ans.tool_calls))
