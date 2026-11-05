@@ -6,7 +6,7 @@ Usage:
 
 Steps run in order: load (optional) -> star schema + model tests -> reconciliation
 -> PII-masked reporting layer -> customer segments -> default model -> data dictionary and lineage
--> Excel MI pack.
+-> Excel MI pack -> findings memo.
 If any step fails, the pipeline stops there, prints BLOCKED and exits 1, so nothing
 downstream (dashboards, MI pack, models) is refreshed from bad data.
 """
@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 from typing import Callable
 
-from card_analytics import berka, catalog, mask, mipack, model, reconcile, segment, star
+from card_analytics import berka, catalog, findings, mask, mipack, model, reconcile, segment, star
 from card_analytics.load import DEFAULT_DB
 
 Step = tuple[str, Callable[[], int]]
@@ -54,6 +54,7 @@ def main(argv: list[str] | None = None) -> int:
     steps.append(("loan default model", lambda: model.main(["--db", args.db, "--docs", str(args.docs)])))
     steps.append(("data dictionary + lineage", lambda: catalog.main(["--db", args.db, "--docs", str(args.docs)])))
     steps.append(("Excel MI pack", lambda: mipack.main(["--db", args.db, "--out", str(args.mi_pack)])))
+    steps.append(("findings memo", lambda: findings.main(["--db", args.db, "--docs", str(args.docs)])))
     return run_steps(steps)
 
 
