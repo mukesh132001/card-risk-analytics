@@ -1,0 +1,50 @@
+{"id": "d01", "type": "docs", "question": "What does the is_overdrawn column mean?", "source": "docs/data-dictionary.md", "expected": ["balance_after_czk < 0"]}
+{"id": "d02", "type": "docs", "question": "What is the grain of fact_transactions?", "source": "docs/data-dictionary.md", "expected": ["one transaction"]}
+{"id": "d03", "type": "docs", "question": "Which client columns are quasi-identifiers?", "source": "docs/data-dictionary.md", "expected": ["birth_date"]}
+{"id": "d04", "type": "docs", "question": "How are client IDs masked in the reporting layer?", "source": "docs/data-dictionary.md", "expected": ["HMAC-SHA256"]}
+{"id": "d05", "type": "docs", "question": "What values can age_band take?", "source": "docs/data-dictionary.md", "expected": ["18-24"]}
+{"id": "d06", "type": "docs", "question": "What are the possible statement frequencies on an account?", "source": "docs/data-dictionary.md", "expected": ["weekly"]}
+{"id": "d07", "type": "docs", "question": "When is loan_is_default set to 1?", "source": "docs/data-dictionary.md", "expected": ["in debt"]}
+{"id": "d08", "type": "docs", "question": "What PII class is account_id?", "source": "docs/data-dictionary.md", "expected": ["identifier"]}
+{"id": "d09", "type": "docs", "question": "Which tables are analysts and dashboards allowed to read?", "source": "docs/data-dictionary.md", "expected": ["dim_district"]}
+{"id": "d10", "type": "docs", "question": "What does signed_amount_czk mean?", "source": "docs/data-dictionary.md", "expected": ["+ credit"]}
+{"id": "d11", "type": "docs", "question": "How is the lineage diagram kept up to date?", "source": "docs/lineage.md", "expected": ["ref()"]}
+{"id": "d12", "type": "docs", "question": "Which table is dim_date built from?", "source": "docs/lineage.md", "expected": ["berka_trans"]}
+{"id": "d13", "type": "docs", "question": "What happens in the pipeline when a data-quality check fails?", "source": "README.md", "expected": ["BLOCKED"]}
+{"id": "d14", "type": "docs", "question": "How many months reconcile to the source?", "source": "docs/reconciliation-report.md", "expected": ["72/72"]}
+{"id": "d15", "type": "docs", "question": "How are amounts compared in the reconciliation?", "source": "docs/reconciliation-report.md", "expected": ["whole cents"]}
+{"id": "d16", "type": "docs", "question": "What is the total loan amount in the source and the model?", "source": "docs/reconciliation-report.md", "expected": ["103,261,740"]}
+{"id": "d17", "type": "docs", "question": "How was the number of customer segments chosen?", "source": "docs/segmentation.md", "expected": ["silhouette"]}
+{"id": "d18", "type": "docs", "question": "How many customer segments did k-means pick?", "source": "docs/segmentation.md", "expected": ["k = 4|4 segments|four"]}
+{"id": "d19", "type": "docs", "question": "Which customer segment has the highest loan default rate?", "source": "docs/segmentation.md", "expected": ["70.4%"]}
+{"id": "d20", "type": "docs", "question": "What share of accounts are in segment 4?", "source": "docs/segmentation.md", "expected": ["27%"]}
+{"id": "d21", "type": "docs", "question": "What features does the customer segmentation use?", "source": "docs/segmentation.md", "expected": ["12 standardised|12 standardized|12 features|twelve"]}
+{"id": "d22", "type": "docs", "question": "What does the loan default model predict?", "source": "docs/model-card.md", "expected": ["running_in_debt|in debt"]}
+{"id": "d23", "type": "docs", "question": "Why is card ownership left out of the default model?", "source": "docs/model-card.md", "expected": ["leak|end of the data"]}
+{"id": "d24", "type": "docs", "question": "How was the alert threshold for the default model chosen?", "source": "docs/model-card.md", "expected": ["75%"]}
+{"id": "d25", "type": "docs", "question": "Why was logistic regression chosen over gradient boosting?", "source": "docs/model-card.md", "expected": ["explain"]}
+{"id": "d26", "type": "docs", "question": "How was the default model validated?", "source": "docs/model-card.md", "expected": ["5-fold|five-fold|cross-validation"]}
+{"id": "d27", "type": "docs", "question": "What share of loans does the default model flag?", "source": "docs/model-card.md", "expected": ["22%"]}
+{"id": "d28", "type": "docs", "question": "What are the limitations of the default model?", "source": "docs/model-card.md", "expected": ["682"]}
+{"id": "d29", "type": "docs", "question": "Why is the default rate for 1998 loans understated?", "source": "docs/model-card.md", "expected": ["censored|little time"]}
+{"id": "d30", "type": "docs", "question": "What is the first recommendation in the findings memo?", "source": "docs/findings-memo.md", "expected": ["penalty interest"]}
+{"id": "d31", "type": "docs", "question": "What loss given default does the findings memo assume?", "source": "docs/findings-memo.md", "expected": ["45%"]}
+{"id": "d32", "type": "docs", "question": "How much are the loans currently in arrears worth?", "source": "docs/findings-memo.md", "expected": ["11.2m|11.2 m|11.2 million"]}
+{"id": "d33", "type": "docs", "question": "How many healthy loans are on the watch list?", "source": "docs/findings-memo.md", "expected": ["66"]}
+{"id": "d34", "type": "docs", "question": "What net interest margin does the memo assume?", "source": "docs/findings-memo.md", "expected": ["3%"]}
+{"id": "d35", "type": "docs", "question": "What is the overall loan default rate?", "source": "docs/findings-memo.md|docs/model-card.md", "expected": ["11.1%"]}
+{"id": "d36", "type": "docs", "question": "Can the impacts of the three recommendations be added together?", "source": "docs/findings-memo.md", "expected": ["shouldn't be added|should not be added|overlap"]}
+{"id": "d37", "type": "docs", "question": "Which dataset does the project use?", "source": "README.md", "expected": ["Berka"]}
+{"id": "d38", "type": "docs", "question": "What command runs the full pipeline?", "source": "README.md", "expected": ["card_analytics.pipeline"]}
+{"id": "d39", "type": "docs", "question": "What is on the Summary tab of the Excel MI pack?", "source": "README.md", "expected": ["yellow"]}
+{"id": "d40", "type": "docs", "question": "How many integrity checks does the Berka loader run?", "source": "README.md", "expected": ["26"]}
+{"id": "s01", "type": "sql", "question": "How many transactions were there in 1997?", "reference_sql": "select count(*) from rpt_fact_transactions f join dim_date d on d.date_key = f.date_key where d.year = 1997", "expected": ["284,409|284409"]}
+{"id": "s02", "type": "sql", "question": "How many accounts are in customer segment 2?", "reference_sql": "select count(*) from rpt_account_segments where segment = 2", "expected": ["1,885|1885"]}
+{"id": "s03", "type": "sql", "question": "Which region has the most loans?", "reference_sql": "select d.region from rpt_fact_loans l join dim_district d on d.district_id = l.district_id group by d.region order by count(*) desc limit 1", "expected": ["south Moravia"]}
+{"id": "s04", "type": "sql", "question": "How many loans does the default model flag?", "reference_sql": "select sum(flagged) from rpt_loan_scores", "expected": ["152"]}
+{"id": "s05", "type": "sql", "question": "How many districts are there?", "reference_sql": "select count(*) from dim_district", "expected": ["77"]}
+{"id": "s06", "type": "sql", "question": "How many accounts in the Prague region have a card?", "reference_sql": "select count(*) from rpt_dim_account a join dim_district d on d.district_id = a.district_id where d.region = 'Prague' and a.n_cards > 0", "expected": ["132"]}
+{"id": "s07", "type": "sql", "question": "How many transactions left an account overdrawn, in total?", "reference_sql": "select sum(is_overdrawn) from rpt_fact_transactions", "expected": ["2,999|2999"]}
+{"id": "s08", "type": "sql", "question": "How many loans started in 1997?", "reference_sql": "select count(*) from rpt_fact_loans l join dim_date d on d.date_key = l.date_key where d.year = 1997", "expected": ["196"]}
+{"id": "s09", "type": "sql", "question": "How many accounts have a gold card?", "reference_sql": "select count(*) from rpt_dim_account where card_type = 'gold'", "expected": ["88"]}
+{"id": "s10", "type": "sql", "question": "How many clients are in the 65+ age band?", "reference_sql": "select count(*) from rpt_dim_client where age_band = '65+'", "expected": ["818"]}

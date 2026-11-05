@@ -6,6 +6,8 @@ Built to mirror how bank data, BI and risk teams work: **SQL + dbt on Databricks
 
 > Status: 🚧 in progress. See the [roadmap](#roadmap) and the GitHub Issues board.
 
+**Start here: [findings memo](docs/findings-memo.md)**: three recommendations with money impact. One simple rule stands out: of the 31 loans whose accounts were overdrawn or charged penalty interest before the loan started, 28 defaulted. Referring those applicants would have avoided up to CZK 2.6m of losses.
+
 ## Pipeline
 
 ```mermaid
@@ -53,8 +55,8 @@ docs/                Data dictionary, lineage, findings memo
 - [ ] **M4 — BI:** Tableau / Power BI dashboard (spend, active cards, delinquency, fraud rate) + Excel MI pack
 - [x] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
 - [ ] **M6 — NLP:** classify complaint/dispute text with spaCy
-- [ ] **M7 — AI assistant:** RAG over policy docs with citations + MCP tools over the platform APIs, with an eval set
-- [ ] **M8 — Findings memo:** two pages, three recommendations with dollar impact
+- [ ] **M7 — AI assistant:** *(Claude + docs search + read-only SQL + MCP server + 50-question eval done; platform-API tools with a confirm step next)* RAG over policy docs with citations + MCP tools over the platform APIs, with an eval set
+- [x] **M8 — Findings memo:** two pages, three recommendations with dollar impact
 
 ## Quick start
 
@@ -159,6 +161,16 @@ Berka has no fraud labels, so the risk model predicts **loan default**. Features
 | Gradient boosting | 0.69 | 0.89 |
 
 Logistic regression wins the near-tie because it's explainable. At the chosen threshold it catches **75% of defaults** while flagging 22% of loans; 1 in 3 flagged loans defaults vs 1 in 9 at random. Biggest drivers: low pre-loan balance, a cash-heavy spending mix, overdrafts and penalty interest. Full details, the precision-recall curve and limitations are in the [model card](docs/model-card.md).
+
+### Colleague assistant (M7)
+
+```powershell
+$env:ANTHROPIC_API_KEY = "sk-ant-..."
+python -m card_analytics.assistant "Why is card ownership left out of the default model?"
+python -m card_analytics.assistant --eval
+```
+
+Ask in plain English; Claude answers with citations using three read-only tools: **search the docs** (section-level, cited like `docs/model-card.md#threshold`), **list tables**, and **run SQL** behind a guard (SELECT only, PII-masked tables only, read-only connection). The same tools run as an **MCP server** for Claude Desktop / Claude Code. A 50-question eval set checks retrieval and SQL offline (50/50, runs in CI) and Claude's answers online (target 85%). Details: [assistant/README.md](assistant/README.md).
 
 ## Related
 
