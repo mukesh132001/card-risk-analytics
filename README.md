@@ -51,7 +51,7 @@ docs/                Data dictionary, lineage, findings memo
 - [x] **M2 — SQL model:** dbt staging → star schema with tests (nulls, uniqueness, accepted values)
 - [x] **M3 — Controls:** reconciliation report (source vs model to the cent), data dictionary, lineage
 - [ ] **M4 — BI:** Tableau / Power BI dashboard (spend, active cards, delinquency, fraud rate) + Excel MI pack
-- [ ] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
+- [x] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
 - [ ] **M6 — NLP:** classify complaint/dispute text with spaCy
 - [ ] **M7 — AI assistant:** RAG over policy docs with citations + MCP tools over the platform APIs, with an eval set
 - [ ] **M8 — Findings memo:** two pages, three recommendations with dollar impact
@@ -143,6 +143,22 @@ K-means on 12 standardised behaviour features per account (money in/out, frequen
 | 4 | 27% | Pensioners: low income, almost no loans | 0 of 3 loans |
 
 Segment 3 is a small group but a strong risk signal worth testing in the default model.
+
+### Loan default model (M5)
+
+```powershell
+python -m card_analytics.model --db sqlite:///cardrisk.db
+```
+
+Berka has no fraud labels, so the risk model predicts **loan default**. Features use only what the bank knew on the day each loan started (pre-loan transactions, loan terms, district), and a test proves a transaction after the start date can't change them. Card ownership and segment are excluded because they're measured at the end of the data.
+
+| Model (repeated 5-fold CV) | PR-AUC | ROC-AUC |
+| --- | ---: | ---: |
+| Baseline (default rate) | 0.11 | 0.50 |
+| **Logistic regression** ✓ | 0.68 | 0.89 |
+| Gradient boosting | 0.69 | 0.89 |
+
+Logistic regression wins the near-tie because it's explainable. At the chosen threshold it catches **75% of defaults** while flagging 22% of loans; 1 in 3 flagged loans defaults vs 1 in 9 at random. Biggest drivers: low pre-loan balance, a cash-heavy spending mix, overdrafts and penalty interest. Full details, the precision-recall curve and limitations are in the [model card](docs/model-card.md).
 
 ## Related
 
