@@ -118,6 +118,15 @@ The pipeline runs load → star schema + model tests → reconciliation, and sto
 
 After reconciliation the pipeline builds the **PII-masked reporting layer** (`rpt_*` tables): client and account IDs become HMAC-SHA256 tokens (salt from `PII_SALT`), birth dates and exact ages are dropped, and 20 checks prove no raw identifier leaks, row counts match and every join still works. Then it regenerates the [data dictionary](docs/data-dictionary.md) and [lineage diagram](docs/lineage.md) from code, and fails if any column is undocumented.
 
+### Excel MI pack (M4)
+
+```powershell
+python -m card_analytics.mipack --db sqlite:///cardrisk.db                   # latest month
+python -m card_analytics.mipack --db sqlite:///cardrisk.db --month 1997-06   # any month
+```
+
+Writes [dashboards/mi_pack.xlsx](dashboards/mi_pack.xlsx) from the PII-masked reporting layer (the pipeline runs it last, only after every control passes). **Summary** is a one-page pack: pick a month in the yellow cell and every number updates — money in/out, net flow, transactions, active accounts and overdraft rate vs prior month and same month last year, a region table with loan default rates and card holders, a built-in check that the region total ties to the headline numbers, and a trend chart. **Pivot** is a region × year cross-tab. All 182 numbers are live Excel formulas (SUMIFS, COUNTIFS, INDEX/MATCH) over the data tabs, not pasted values.
+
 ## Related
 
 The transaction platform that produces this data: [card-banking-platform](https://github.com/mukesh132001/card-banking-platform).
