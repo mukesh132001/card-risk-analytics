@@ -69,6 +69,7 @@ def test_gate_stops_at_first_failure():
 def test_full_pipeline_passes(src, tmp_path):
     db = tmp_path / "pipe.db"
     report = tmp_path / "report.md"
-    code = pipeline.main(["--db", f"sqlite:///{db}", "--src", str(src), "--report", str(report)])
+    code = pipeline.main(["--db", f"sqlite:///{db}", "--src", str(src), "--report", str(report), "--docs", str(tmp_path)])
     assert code == 0
     assert report.exists()
+    assert (tmp_path / "data-dictionary.md").exists() and (tmp_path / "lineage.md").exists()

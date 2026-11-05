@@ -49,7 +49,7 @@ docs/                Data dictionary, lineage, findings memo
 
 - [x] **M1 — Data:** synthetic generator + public card-fraud dataset loaded into PostgreSQL
 - [x] **M2 — SQL model:** dbt staging → star schema with tests (nulls, uniqueness, accepted values)
-- [ ] **M3 — Controls:** reconciliation report (source vs model to the cent), data dictionary, lineage
+- [x] **M3 — Controls:** reconciliation report (source vs model to the cent), data dictionary, lineage
 - [ ] **M4 — BI:** Tableau / Power BI dashboard (spend, active cards, delinquency, fraud rate) + Excel MI pack
 - [ ] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
 - [ ] **M6 — NLP:** classify complaint/dispute text with spaCy
@@ -107,7 +107,7 @@ SQL models live in `dbt/models/berka/` in dbt syntax. 15 model tests check uniqu
 
 **First findings:** loan holders with a card default 2.9% of the time vs 13.9% without one; default rates range from 1.6% (north Bohemia) to 15.8% (west Bohemia).
 
-### Reconciliation and data-quality gate (M3)
+### Controls: reconciliation, data-quality gate, PII masking (M3)
 
 ```powershell
 python -m card_analytics.pipeline --db sqlite:///cardrisk.db                     # rebuild + reconcile
@@ -115,6 +115,8 @@ python -m card_analytics.pipeline --db sqlite:///cardrisk.db --src data/raw/berk
 ```
 
 The pipeline runs load → star schema + model tests → reconciliation, and stops with `BLOCKED` (exit code 1) at the first failure, so dashboards and models are never refreshed from bad data. The reconciliation compares source and model month by month (rows, credits, debits) and loans overall, in whole cents, and writes [docs/reconciliation-report.md](docs/reconciliation-report.md). Current result: **72/72 months match to the cent**. A test proves a single 1-cent change fails the right month.
+
+After reconciliation the pipeline builds the **PII-masked reporting layer** (`rpt_*` tables): client and account IDs become HMAC-SHA256 tokens (salt from `PII_SALT`), birth dates and exact ages are dropped, and 20 checks prove no raw identifier leaks, row counts match and every join still works. Then it regenerates the [data dictionary](docs/data-dictionary.md) and [lineage diagram](docs/lineage.md) from code, and fails if any column is undocumented.
 
 ## Related
 
