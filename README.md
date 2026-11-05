@@ -127,6 +127,23 @@ python -m card_analytics.mipack --db sqlite:///cardrisk.db --month 1997-06   # a
 
 Writes [dashboards/mi_pack.xlsx](dashboards/mi_pack.xlsx) from the PII-masked reporting layer (the pipeline runs it last, only after every control passes). **Summary** is a one-page pack: pick a month in the yellow cell and every number updates — money in/out, net flow, transactions, active accounts and overdraft rate vs prior month and same month last year, a region table with loan default rates and card holders, a built-in check that the region total ties to the headline numbers, and a trend chart. **Pivot** is a region × year cross-tab. All 182 numbers are live Excel formulas (SUMIFS, COUNTIFS, INDEX/MATCH) over the data tabs, not pasted values.
 
+### Customer segmentation (M5)
+
+```powershell
+python -m card_analytics.segment --db sqlite:///cardrisk.db
+```
+
+K-means on 12 standardised behaviour features per account (money in/out, frequency, balance, overdrafts, cash/card/transfer/loan mix, pension income, card ownership), from the masked reporting layer. k is chosen by silhouette score within 3–6 segments; the result is **4 segments** ([docs/segmentation.md](docs/segmentation.md)), written to `rpt_account_segments` for dashboards:
+
+| Segment | Share | Who they are | Loan default rate |
+| --- | ---: | --- | ---: |
+| 1 | 19% | Card holders, highest balances, most card spend | 3.0% |
+| 2 | 42% | Mainstream: high income and spend, no card | 10.7% |
+| 3 | 12% | Cash-only, low activity, few transfers | 70.4% (19 of 27 loans) |
+| 4 | 27% | Pensioners: low income, almost no loans | 0 of 3 loans |
+
+Segment 3 is a small group but a strong risk signal worth testing in the default model.
+
 ## Related
 
 The transaction platform that produces this data: [card-banking-platform](https://github.com/mukesh132001/card-banking-platform).
