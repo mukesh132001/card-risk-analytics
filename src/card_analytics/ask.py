@@ -18,7 +18,10 @@ from card_analytics.load import DEFAULT_DB, connect
 def split_queries(text: str) -> list[tuple[str, str]]:
     out = []
     for chunk in text.split(";"):
-        if "select" not in chunk.lower():
+        # Ignore comment lines when deciding if a chunk is a query, so hint text
+        # that mentions "select" (or a question with no answer yet) is skipped.
+        code = "\n".join(line for line in chunk.splitlines() if not line.strip().startswith("--"))
+        if "select" not in code.lower():
             continue
         titles = [line[3:].strip() for line in chunk.splitlines() if line.startswith("-- Q")]
         out.append((titles[0] if titles else "Query", chunk.strip()))
