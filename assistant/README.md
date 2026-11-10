@@ -76,25 +76,25 @@ Optional, read-only tools over the platform's account-service. They are off by d
 
 ```powershell
 $env:PLATFORM_URL = "http://localhost:8080"
-$env:PLATFORM_USERNAME = "demo"; $env:PLATFORM_PASSWORD = "..."
+$env:PLATFORM_EMAIL = "you@example.com"; $env:PLATFORM_PASSWORD = "..."
 python -m card_analytics.assistant --platform "What was my most recent transaction on account 1?"
 ```
 
 | Tool | Request |
 | --- | --- |
 | `platform_list_accounts` | `GET /api/accounts` |
-| `platform_get_transactions` | `GET /api/accounts/{id}/transactions` |
+| `platform_get_transactions` | `GET /api/accounts/{id}/transactions` with optional `from`, `to` (YYYY-MM-DD), `direction` (CREDIT/DEBIT), `q`, `page`, `size` (1-100); all validated before the request |
 
 - **Confirm step:** each call is described in words and you answer `y/N` **before** any request is made (the login included). No answer, or anything but yes, means no call; the model is told not to retry.
 - **Read-only:** there is no tool that freezes a card, transfers money or edits anything; "freeze my card" gets a polite refusal. The only POST is the JWT login.
 - **Secrets and PII:** the JWT and password stay inside `platform_api.py` (never sent to the model or printed); account ids are validated (no `../`); card and account numbers are masked to the last four digits; lists are capped at 50 items.
-- **Assumptions to check against the platform:** login is `POST /api/auth/login` with `{"username","password"}` returning `{"token": ...}` (or `accessToken`). Set `PLATFORM_LOGIN_PATH` if its auth controller differs. Response field names are passed through untouched, so no schema is hard-coded.
+- **Platform contract** (checked against account-service): login is `POST /api/auth/login` with `{"email","password"}` returning `{"accessToken","tokenType","expiresIn","refreshToken"}`; accounts are `[{id, maskedNumber, type, currency, balance, status, openedAt}]`; transactions are `{content:[{id, postedAt, direction, amount, signedAmount, description, merchant, category, balanceAfter}], page, size, totalElements, totalPages}`. A 404 means the account isn't the signed-in user's. An expired token (401) triggers one re-login. The refresh token is not used.
 - The MCP server does not expose these tools: MCP clients have no confirm step of our own.
 
-Eval: 14 questions in [evals/platform_questions.jsonl](evals/platform_questions.jsonl) against a fixed fake platform (10 call, 1 declined, 3 refuse/bad id), results in [evals/platform-results.md](evals/platform-results.md).
+Eval: 15 questions in [evals/platform_questions.jsonl](evals/platform_questions.jsonl) against a fixed fake platform with the real response shapes (11 call, 1 declined, 3 refuse/bad id), results in [evals/platform-results.md](evals/platform-results.md).
 
 ```powershell
-python -m card_analytics.assistant.platform_eval            # offline, no key: runs in CI (14/14)
+python -m card_analytics.assistant.platform_eval            # offline, no key: runs in CI (15/15)
 python -m card_analytics.assistant.platform_eval --online   # Claude chooses the calls (uses your API key)
 ```
 

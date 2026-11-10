@@ -1,4 +1,4 @@
-"""Evaluate the platform tools on assistant/evals/platform_questions.jsonl (14 questions).
+"""Evaluate the platform tools on assistant/evals/platform_questions.jsonl (15 questions).
 
 The platform is replaced by a fixed fake (no network, no real customer data), so results are
 repeatable. Question types:
@@ -28,19 +28,31 @@ RESULTS = ROOT / "assistant" / "evals" / "platform-results.md"
 TARGET = 0.85
 FULL_NUMBER = "4000123412341234"
 
+# Shapes follow card-banking-platform's account-service exactly.
 ACCOUNTS = [
-    {"id": "1", "accountNumber": FULL_NUMBER, "type": "CREDIT", "balance": 1520.50, "currency": "GBP"},
-    {"id": "2", "accountNumber": "5000987698769876", "type": "SAVINGS", "balance": 8300.00, "currency": "GBP"},
+    {"id": "1", "maskedNumber": "************1234", "type": "CREDIT", "currency": "GBP", "balance": 1520.50,
+     "status": "ACTIVE", "openedAt": "2024-02-01T09:00:00Z"},
+    {"id": "2", "maskedNumber": "************9876", "type": "SAVINGS", "currency": "GBP", "balance": 8300.00,
+     "status": "ACTIVE", "openedAt": "2023-06-15T09:00:00Z"},
 ]
+
+
+def _txn(i, day, direction, amount, merchant, category, balance, description=None):
+    return {"id": i, "postedAt": f"2026-10-{day:02d}T12:00:00Z", "direction": direction, "amount": amount,
+            "signedAmount": amount if direction == "CREDIT" else -amount, "description": description or merchant,
+            "merchant": merchant, "category": category, "balanceAfter": balance}
+
+
 TRANSACTIONS = {
     "1": [
-        {"id": "t5", "date": "2026-10-30", "merchant": "Coffee Corner", "amount": -3.60},
-        {"id": "t4", "date": "2026-10-28", "merchant": "Fuel Stop", "amount": -79.58},
-        {"id": "t3", "date": "2026-10-20", "merchant": "Payment received", "amount": 500.00},
-        {"id": "t2", "date": "2026-10-12", "merchant": "Electro World", "amount": -649.00},
-        {"id": "t1", "date": "2026-10-03", "merchant": "Metro Grocers", "amount": -42.10},
+        _txn("t5", 30, "DEBIT", 3.60, "Coffee Corner", "DINING", 1520.50),
+        _txn("t4", 28, "DEBIT", 79.58, "Fuel Stop", "TRANSPORT", 1524.10),
+        _txn("t3", 20, "CREDIT", 500.00, "Payment received", "PAYMENT", 1603.68),
+        _txn("t2", 12, "DEBIT", 649.00, "Electro World", "SHOPPING", 1103.68),
+        _txn("t1", 3, "DEBIT", 42.10, "Metro Grocers", "GROCERIES", 1752.68,
+             description="Metro Grocers card 4000123412341234"),
     ],
-    "2": [{"id": "s1", "date": "2026-10-31", "merchant": "Interest", "amount": 12.40}],
+    "2": [_txn("s1", 31, "CREDIT", 12.40, "Interest", "INTEREST", 8300.00)],
 }
 
 
@@ -51,17 +63,26 @@ class FakePlatform:
         self.requests: list[tuple[str, str]] = []
 
     def __call__(self, method, url, headers, body):
-        path = "/" + url.split("//", 1)[1].split("/", 1)[1]
-        self.requests.append((method, path))
+        full = "/" + url.split("//", 1)[1].split("/", 1)[1]
+        self.requests.append((method, full))
+        path, _, query = full.partition("?")
+        params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
         if method == "POST" and path.endswith("/login"):
-            return 200, json.dumps({"token": "fake.jwt.token"})
+            if set(json.loads(body)) != {"email", "password"}:
+                return 400, "{}"
+            return 200, json.dumps({"accessToken": "fake.jwt.token", "tokenType": "Bearer", "expiresIn": 900, "refreshToken": "r"})
         if headers.get("Authorization") != "Bearer fake.jwt.token":
             return 401, "{}"
         if method == "GET" and path == "/api/accounts":
             return 200, json.dumps(ACCOUNTS)
         if method == "GET" and path.startswith("/api/accounts/") and path.endswith("/transactions"):
             aid = path.split("/")[3]
-            return (200, json.dumps(TRANSACTIONS[aid])) if aid in TRANSACTIONS else (404, "{}")
+            if aid not in TRANSACTIONS:
+                return 404, "{}"
+            rows = [t for t in TRANSACTIONS[aid] if params.get("direction", t["direction"]) == t["direction"]]
+            size, page = int(params.get("size", 20)), int(params.get("page", 0))
+            return 200, json.dumps({"content": rows[page * size:(page + 1) * size], "page": page, "size": size,
+                                    "totalElements": len(rows), "totalPages": max(1, -(-len(rows) // size))})
         return 405, "{}"
 
     @property
@@ -71,7 +92,7 @@ class FakePlatform:
 
 def make_tools(confirm, fake: FakePlatform | None = None):
     fake = fake or FakePlatform()
-    client = platform_api.PlatformClient("http://platform.test", "demo", "demo-pass", transport=fake)
+    client = platform_api.PlatformClient("http://platform.test", "demo@example.com", "demo-pass", transport=fake)
     return platform_api.PlatformTools(client, confirm), fake
 
 
@@ -87,7 +108,8 @@ def offline(questions: list[dict]) -> list[dict]:
             blob = ""
             for c in q["expected_calls"]:
                 blob += json.dumps(pt.call(c["tool"], c["args"]), default=str)
-            ok = all(f in blob for f in q["data"]) and FULL_NUMBER not in blob and "error" not in blob
+            ok = (all(f in blob for f in q["data"]) and not any(a in blob for a in q.get("absent", []))
+                  and FULL_NUMBER not in blob and "error" not in blob)
             got = "data returned" if ok else blob[:160]
         elif q["type"] == "declined":
             pt, fake = make_tools(lambda _: False)

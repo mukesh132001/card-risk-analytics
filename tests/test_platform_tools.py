@@ -45,8 +45,52 @@ def test_account_id_path_tricks_are_rejected_before_any_request(bad):
 
 def test_account_numbers_are_masked_and_token_never_returned():
     pt, _ = make_tools(lambda p: True)
-    blob = json.dumps(pt.call("platform_list_accounts", {}))
-    assert FULL_NUMBER not in blob and "1234" in blob and "fake.jwt.token" not in blob and "demo-pass" not in blob
+    blob = json.dumps(pt.call("platform_list_accounts", {})) + json.dumps(pt.call("platform_get_transactions", {"account_id": "1"}))
+    # the fake leaks a full card number inside a transaction description: it must be masked
+    assert FULL_NUMBER not in blob and "************1234" in blob and "fake.jwt.token" not in blob and "demo-pass" not in blob
+
+
+def test_login_sends_email_and_reads_access_token():
+    sent = []
+
+    def transport(method, url, headers, body):
+        sent.append((method, url, json.loads(body) if body else None))
+        return FakePlatform()(method, url, headers, body)
+
+    client = platform_api.PlatformClient("http://platform.test", "me@example.com", "pw", transport=transport)
+    client.get("/api/accounts")
+    assert sent[0] == ("POST", "http://platform.test/api/auth/login", {"email": "me@example.com", "password": "pw"})
+    assert client._token == "fake.jwt.token"
+
+
+def test_account_shape_and_paged_transactions_keep_content_and_paging():
+    pt, _ = make_tools(lambda p: True)
+    acct = pt.call("platform_list_accounts", {})["data"]["items"][0]
+    assert set(acct) == {"id", "maskedNumber", "type", "currency", "balance", "status", "openedAt"}
+    data = pt.call("platform_get_transactions", {"account_id": "1", "size": 2})["data"]
+    assert len(data["content"]) == 2 and (data["page"], data["size"], data["totalElements"], data["totalPages"]) == (0, 2, 5, 3)
+    assert {"postedAt", "direction", "signedAmount", "balanceAfter"} <= set(data["content"][0])
+
+
+def test_transaction_filters_become_query_parameters():
+    pt, fake = make_tools(lambda p: True)
+    res = pt.call("platform_get_transactions", {"account_id": "1", "direction": "DEBIT", "from": "2026-10-01", "to": "2026-10-31", "page": 0, "size": 10, "q": "fuel"})
+    assert "error" not in res
+    path = fake.gets[-1][1]
+    assert path.startswith("/api/accounts/1/transactions?") and "direction=DEBIT" in path and "from=2026-10-01" in path and "q=fuel" in path
+    assert all(t["direction"] == "DEBIT" for t in res["data"]["content"])
+
+
+@pytest.mark.parametrize("args", [{"direction": "debit"}, {"from": "01/10/2026"}, {"size": 101}, {"size": 0}, {"page": -1}, {"q": "x" * 101}, {"size": "abc"}])
+def test_invalid_filters_are_rejected_before_any_request(args):
+    pt, fake = make_tools(lambda p: True)
+    assert "error" in pt.call("platform_get_transactions", {"account_id": "1", **args})
+    assert fake.requests == []
+
+
+def test_foreign_account_404_is_reported_not_hidden():
+    pt, _ = make_tools(lambda p: True)
+    assert "404" in pt.call("platform_get_transactions", {"account_id": "999"})["error"]
 
 
 def test_expired_token_is_refreshed_once():
@@ -111,6 +155,6 @@ def test_cli_confirm_defaults_to_no(monkeypatch):
 
 def test_platform_eval_set_and_offline_result():
     qs = platform_eval.load()
-    assert len(qs) == 14 and {q["type"] for q in qs} == {"call", "declined", "refuse"}
+    assert len(qs) == 15 and {q["type"] for q in qs} == {"call", "declined", "refuse"}
     res = platform_eval.run("offline", write=False)
     assert res["passed"] == res["total"], [r["id"] for r in res["results"] if not r["passed"]]

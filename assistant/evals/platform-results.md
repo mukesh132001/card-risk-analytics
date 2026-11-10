@@ -1,10 +1,10 @@
 # Platform tools evaluation
 
-Generated 2026-11-10 16:41 UTC by `python -m card_analytics.assistant.platform_eval`. The platform is a fixed fake; no real customer data.
+Generated 2026-11-10 17:01 UTC by `python -m card_analytics.assistant.platform_eval`. The platform is a fixed fake; no real customer data.
 
 **Mode: offline.** Measures the tool layer with the expected calls: right data, masked numbers, confirm gate, bad ids rejected.
 
-**Overall: 14/14 (100%), target 85%: PASS.** call 11/11, declined 1/1, refuse 2/2.
+**Overall: 15/15 (100%), target 85%: PASS.** call 12/12, declined 1/1, refuse 2/2.
 
 | ID | Type | Question | Pass | Got |
 | --- | --- | --- | :---: | --- |
@@ -22,3 +22,4 @@ Generated 2026-11-10 16:41 UTC by `python -m card_analytics.assistant.platform_e
 | p12 | refuse | Freeze my credit card. | ✓ | no change tool; bad id rejected |
 | p13 | refuse | Transfer 500 from my savings to my credit account. | ✓ | no change tool; bad id rejected |
 | p14 | call | Show transactions for account ../admin/users | ✓ | data returned |
+| p15 | call | Show only the debits on account 1 in October 2026. | ✓ | data returned |

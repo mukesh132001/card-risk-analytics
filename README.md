@@ -55,7 +55,7 @@ docs/                Data dictionary, lineage, findings memo
 - [ ] **M4 — BI:** Power BI dashboard (spend, active cards, delinquency, default rate by region) + Excel MI pack *(Excel MI pack, masked CSV extracts and [build guide](docs/powerbi-dashboard.md) done; the .pbix and screenshot are still to be built in Power BI Desktop)*
 - [x] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
 - [x] **M6 — NLP:** classify complaint/dispute text with spaCy (generated labelled set; CFPB CSV supported)
-- [x] **M7 — AI assistant:** docs search with citations, guarded read-only SQL, MCP server, read-only platform-API tools with a confirm step, and two eval sets (50 + 14 questions; Claude-in-the-loop `--online` runs not yet done)
+- [x] **M7 — AI assistant:** docs search with citations, guarded read-only SQL, MCP server, read-only platform-API tools with a confirm step, and two eval sets (50 + 15 questions; Claude-in-the-loop `--online` runs not yet done)
 - [x] **M8 — Findings memo:** two pages, three recommendations with dollar impact
 
 ## Quick start
@@ -192,7 +192,7 @@ python -m card_analytics.assistant --eval
 
 Ask in plain English; Claude answers with citations using three read-only tools: **search the docs** (section-level, cited like `docs/model-card.md#threshold`), **list tables**, and **run SQL** behind a guard (SELECT only, PII-masked tables only, read-only connection). The same tools run as an **MCP server** for Claude Desktop / Claude Code. A 50-question eval set checks retrieval and SQL offline (50/50, runs in CI) and Claude's answers online (target 85%).
 
-With `--platform`, Claude can also read live accounts and transactions from [card-banking-platform](https://github.com/mukesh132001/card-banking-platform) (`GET /api/accounts`, `GET /api/accounts/{id}/transactions`, JWT login). It is read-only, asks you to confirm every call before any request is made, and masks card and account numbers. A 14-question eval runs offline against a fake platform (14/14). The platform's login path and token field are assumptions to verify against the real service. Details: [assistant/README.md](assistant/README.md).
+With `--platform`, Claude can also read live accounts and transactions from [card-banking-platform](https://github.com/mukesh132001/card-banking-platform) (`GET /api/accounts`, `GET /api/accounts/{id}/transactions`, JWT login). It is read-only, asks you to confirm every call before any request is made, and masks card and account numbers. A 15-question eval runs offline against a fake platform that mirrors the account-service's request and response shapes (15/15). Details: [assistant/README.md](assistant/README.md).
 
 ## Related
 
