@@ -70,7 +70,37 @@ python -m card_analytics.assistant --eval --online   # Claude answers all 50 (us
 Tests (`tests/test_assistant.py`) cover the SQL guard, read-only access, retrieval, the tool-use loop (with a fake
 client, so no network or key is needed) and the eval set itself (every expected fact really appears in its source doc).
 
+## Platform tools (card-banking-platform)
+
+Optional, read-only tools over the platform's account-service. They are off by default; `--platform` turns them on.
+
+```powershell
+$env:PLATFORM_URL = "http://localhost:8080"
+$env:PLATFORM_USERNAME = "demo"; $env:PLATFORM_PASSWORD = "..."
+python -m card_analytics.assistant --platform "What was my most recent transaction on account 1?"
+```
+
+| Tool | Request |
+| --- | --- |
+| `platform_list_accounts` | `GET /api/accounts` |
+| `platform_get_transactions` | `GET /api/accounts/{id}/transactions` |
+
+- **Confirm step:** each call is described in words and you answer `y/N` **before** any request is made (the login included). No answer, or anything but yes, means no call; the model is told not to retry.
+- **Read-only:** there is no tool that freezes a card, transfers money or edits anything; "freeze my card" gets a polite refusal. The only POST is the JWT login.
+- **Secrets and PII:** the JWT and password stay inside `platform_api.py` (never sent to the model or printed); account ids are validated (no `../`); card and account numbers are masked to the last four digits; lists are capped at 50 items.
+- **Assumptions to check against the platform:** login is `POST /api/auth/login` with `{"username","password"}` returning `{"token": ...}` (or `accessToken`). Set `PLATFORM_LOGIN_PATH` if its auth controller differs. Response field names are passed through untouched, so no schema is hard-coded.
+- The MCP server does not expose these tools: MCP clients have no confirm step of our own.
+
+Eval: 14 questions in [evals/platform_questions.jsonl](evals/platform_questions.jsonl) against a fixed fake platform (10 call, 1 declined, 3 refuse/bad id), results in [evals/platform-results.md](evals/platform-results.md).
+
+```powershell
+python -m card_analytics.assistant.platform_eval            # offline, no key: runs in CI (14/14)
+python -m card_analytics.assistant.platform_eval --online   # Claude chooses the calls (uses your API key)
+```
+
+The offline run proves the tool layer; **Claude's own tool choices are only checked by `--online`, which has not been run yet.**
+
 ## Next
 
-- Tools over the card-banking-platform APIs (e.g. freeze a card) with a **confirm step** before anything changes.
 - Swap TF-IDF for embeddings + pgvector once the corpus includes long policy PDFs.
+- Tools that change things (e.g. freeze a card) would need the same confirm step plus an audit log.

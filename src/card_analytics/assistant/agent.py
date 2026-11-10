@@ -21,6 +21,9 @@ How to answer:
   and [sql] for numbers you computed with run_sql.
 - If the tools don't contain the answer, say you don't know. Never guess a number.
 - Be brief: one to four sentences, or a small table. Lead with the answer.
+- If platform_* tools are available they read the signed-in customer's live accounts and transactions
+  (cite as [platform]); the person approves each call. If a call is declined, say no call was made and
+  don't retry. Account numbers come back masked; never ask for or reveal full numbers or credentials.
 - You can only read data. If asked to change, delete or approve anything, say you can't and who would.
 - Never try to identify a real person; the data is masked and must stay that way."""
 
@@ -43,14 +46,19 @@ def make_client():
     return anthropic.Anthropic()
 
 
-def ask(question: str, client=None, model: str | None = None, max_turns: int = MAX_TURNS) -> Answer:
-    """Answer a question with Claude, letting it call the tools until it has what it needs."""
+def ask(question: str, client=None, model: str | None = None, max_turns: int = MAX_TURNS, platform=None) -> Answer:
+    """Answer a question with Claude, letting it call the tools until it has what it needs.
+
+    `platform` (a platform_api.PlatformTools) adds the card-banking-platform read-only tools; each
+    call is confirmed with a person first. Without it only the three local tools exist.
+    """
     client = client or make_client()
+    specs = tools.TOOL_SPECS + (platform.SPECS if platform else [])
     model = model or os.environ.get("ANTHROPIC_MODEL", DEFAULT_MODEL)
     messages = [{"role": "user", "content": question}]
     calls: list[dict] = []
     for _ in range(max_turns):
-        resp = client.messages.create(model=model, max_tokens=1024, system=SYSTEM, tools=tools.TOOL_SPECS, messages=messages)
+        resp = client.messages.create(model=model, max_tokens=1024, system=SYSTEM, tools=specs, messages=messages)
         content = list(resp.content)
         if resp.stop_reason != "tool_use":
             text = "".join(_block_get(b, "text", "") for b in content if _block_get(b, "type") == "text").strip()
@@ -61,7 +69,7 @@ def ask(question: str, client=None, model: str | None = None, max_turns: int = M
             if _block_get(block, "type") != "tool_use":
                 continue
             name, args = _block_get(block, "name"), _block_get(block, "input") or {}
-            result = tools.call_tool(name, args)
+            result = platform.call(name, args) if platform and name in platform.NAMES else tools.call_tool(name, args)
             calls.append({"tool": name, "input": args, "error": result.get("error") if isinstance(result, dict) else None})
             payload = json.dumps(result, default=str)[:MAX_TOOL_RESULT_CHARS]
             results.append({"type": "tool_result", "tool_use_id": _block_get(block, "id"), "content": payload})

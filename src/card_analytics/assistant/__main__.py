@@ -3,6 +3,7 @@
 Usage:
     python -m card_analytics.assistant "Why is card ownership left out of the default model?"
     python -m card_analytics.assistant --eval            # offline: retrieval + reference SQL (no API key needed)
+    python -m card_analytics.assistant --platform "What did I spend last month?"   # + platform tools, you confirm each call
     python -m card_analytics.assistant --eval --online   # Claude answers all 50 questions (needs ANTHROPIC_API_KEY)
 
 Needs the pipeline to have run (docs/ and the rpt_ tables). Database: CARDRISK_DB or
@@ -14,7 +15,7 @@ import argparse
 import os
 import sys
 
-from card_analytics.assistant import agent, evaluate
+from card_analytics.assistant import agent, evaluate, platform_api
 
 HINTS = {
     "AuthenticationError": "Anthropic rejected the API key (401). Check ANTHROPIC_API_KEY: a real key starts with "
@@ -41,6 +42,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("question", nargs="*", help="your question")
     parser.add_argument("--eval", action="store_true", help="run the 50-question evaluation")
     parser.add_argument("--online", action="store_true", help="with --eval: have Claude answer (needs ANTHROPIC_API_KEY)")
+    parser.add_argument("--platform", action="store_true",
+                        help="also let Claude read card-banking-platform accounts/transactions (asks you to confirm each call)")
     args = parser.parse_args(argv)
 
     if args.eval:
@@ -68,7 +71,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 2
     try:
-        ans = agent.answer(" ".join(args.question))
+        question = " ".join(args.question)
+        if args.platform:
+            if not os.environ.get("ANTHROPIC_API_KEY"):
+                print("--platform needs ANTHROPIC_API_KEY")
+                return 2
+            ans = agent.ask(question, platform=platform_api.PlatformTools(confirm=platform_api.cli_confirm))
+        else:
+            ans = agent.answer(question)
     except Exception as e:
         hint = explain_api_error(e)
         if hint is None:
