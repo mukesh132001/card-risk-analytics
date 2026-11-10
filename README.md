@@ -4,7 +4,7 @@ Analytics, ML and an AI assistant on card transaction data: a tested SQL model, 
 
 Built to mirror how bank data, BI and risk teams work: **SQL + dbt on Databricks/Snowflake, Python (pandas, scikit-learn, spaCy), Tableau / Power BI, data-quality controls, and GenAI with RAG**.
 
-> Status: all milestones built; the one open item is the Power BI dashboard itself (extracts and build guide are ready, see M4). See the [roadmap](#roadmap) and the GitHub Issues board.
+> Status: ✅ all milestones (M1-M8) are done. See the [roadmap](#roadmap) and the GitHub Issues board.
 
 **Start here: [findings memo](docs/findings-memo.md)**: three recommendations with money impact. One simple rule stands out: of the 31 loans whose accounts were overdrawn or charged penalty interest before the loan started, 28 defaulted. Referring those applicants would have avoided up to CZK 2.6m of losses.
 
@@ -52,7 +52,7 @@ docs/                Data dictionary, lineage, findings memo
 - [x] **M1 — Data:** synthetic generator + public card-fraud dataset loaded into PostgreSQL
 - [x] **M2 — SQL model:** dbt staging → star schema with tests (nulls, uniqueness, accepted values)
 - [x] **M3 — Controls:** reconciliation report (source vs model to the cent), data dictionary, lineage
-- [ ] **M4 — BI:** Power BI dashboard (spend, active cards, delinquency, default rate by region) + Excel MI pack *(Excel MI pack, masked CSV extracts and [build guide](docs/powerbi-dashboard.md) done; the .pbix and screenshot are still to be built in Power BI Desktop)*
+- [x] **M4 — BI:** Power BI dashboard (spend, active cards, delinquency, default rate by region) + Excel MI pack
 - [x] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
 - [x] **M6 — NLP:** classify complaint/dispute text with spaCy (generated labelled set; CFPB CSV supported)
 - [x] **M7 — AI assistant:** docs search with citations, guarded read-only SQL, MCP server, read-only platform-API tools with a confirm step, and two eval sets (50 + 15 questions; Claude-in-the-loop `--online` runs not yet done)
@@ -138,7 +138,11 @@ Writes [dashboards/mi_pack.xlsx](dashboards/mi_pack.xlsx) from the PII-masked re
 python -m card_analytics.bi_extracts --db sqlite:///cardrisk.db
 ```
 
-Writes three CSVs to `dashboards/powerbi/extracts/` from the masked reporting layer: spend, money in, active accounts and active cards by month and region, and the loan book (loans, delinquent, defaulted, exposure) by start year and region. [docs/powerbi-dashboard.md](docs/powerbi-dashboard.md) is the step-by-step build: load and model, DAX measures, page layout, and the totals to check against (682 loans, 76 defaults = 11.1%, 45 delinquent). Berka has no fraud labels, so the risk KPI is default rate, not fraud rate. The dashboard file and screenshot are not in the repo yet.
+Writes three CSVs to `dashboards/powerbi/extracts/` from the masked reporting layer: spend, money in, active accounts and active cards by month and region, and the loan book (loans, delinquent, defaulted, exposure) by start year and region. [docs/powerbi-dashboard.md](docs/powerbi-dashboard.md) is the step-by-step build: load and model, DAX measures, page layout, and the totals to check against (682 loans, 76 defaults = 11.1%, 45 delinquent). Berka has no fraud labels, so the risk KPI is default rate, not fraud rate. The finished dashboard is [dashboards/powerbi/card_risk.pbix](dashboards/powerbi/card_risk.pbix) (open in Power BI Desktop; it embeds only the masked extracts):
+
+![Power BI dashboard: spend, active cards, delinquency and default rate by region](dashboards/powerbi/screenshot.png)
+
+Its totals tie to the source: 682 loans, 76 defaults (11.1%), 45 delinquent (6.6%), CZK 3,030 m spend, 884 active cards in the latest month.
 
 ### Customer segmentation (M5)
 
