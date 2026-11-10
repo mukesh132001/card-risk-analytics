@@ -4,7 +4,7 @@ Analytics, ML and an AI assistant on card transaction data: a tested SQL model, 
 
 Built to mirror how bank data, BI and risk teams work: **SQL + dbt on Databricks/Snowflake, Python (pandas, scikit-learn, spaCy), Tableau / Power BI, data-quality controls, and GenAI with RAG**.
 
-> Status: 🚧 in progress. See the [roadmap](#roadmap) and the GitHub Issues board.
+> Status: all milestones built; the one open item is the Power BI dashboard itself (extracts and build guide are ready, see M4). See the [roadmap](#roadmap) and the GitHub Issues board.
 
 **Start here: [findings memo](docs/findings-memo.md)**: three recommendations with money impact. One simple rule stands out: of the 31 loans whose accounts were overdrawn or charged penalty interest before the loan started, 28 defaulted. Referring those applicants would have avoided up to CZK 2.6m of losses.
 
@@ -52,10 +52,10 @@ docs/                Data dictionary, lineage, findings memo
 - [x] **M1 — Data:** synthetic generator + public card-fraud dataset loaded into PostgreSQL
 - [x] **M2 — SQL model:** dbt staging → star schema with tests (nulls, uniqueness, accepted values)
 - [x] **M3 — Controls:** reconciliation report (source vs model to the cent), data dictionary, lineage
-- [ ] **M4 — BI:** Tableau / Power BI dashboard (spend, active cards, delinquency, fraud rate) + Excel MI pack
+- [ ] **M4 — BI:** Power BI dashboard (spend, active cards, delinquency, default rate by region) + Excel MI pack *(Excel MI pack, masked CSV extracts and [build guide](docs/powerbi-dashboard.md) done; the .pbix and screenshot are still to be built in Power BI Desktop)*
 - [x] **M5 — ML:** segmentation (k-means) and fraud model (logistic regression → gradient boosting) with a model card
-- [ ] **M6 — NLP:** classify complaint/dispute text with spaCy
-- [ ] **M7 — AI assistant:** *(Claude + docs search + read-only SQL + MCP server + 50-question eval done; platform-API tools with a confirm step next)* RAG over policy docs with citations + MCP tools over the platform APIs, with an eval set
+- [x] **M6 — NLP:** classify complaint/dispute text with spaCy (generated labelled set; CFPB CSV supported)
+- [x] **M7 — AI assistant:** docs search with citations, guarded read-only SQL, MCP server, read-only platform-API tools with a confirm step, and two eval sets (50 + 14 questions; Claude-in-the-loop `--online` runs not yet done)
 - [x] **M8 — Findings memo:** two pages, three recommendations with dollar impact
 
 ## Quick start
@@ -77,6 +77,9 @@ python -m card_analytics.load --csv data/raw/transactions.csv
 python -m card_analytics.load --csv data/raw/transactions.csv --db sqlite:///cardrisk.db
 
 pytest
+
+# Complaint classifier (M6) needs a spaCy model once:
+python -m spacy download en_core_web_sm
 ```
 
 ### Real bank data: Berka (PKDD'99)
@@ -129,6 +132,14 @@ python -m card_analytics.mipack --db sqlite:///cardrisk.db --month 1997-06   # a
 
 Writes [dashboards/mi_pack.xlsx](dashboards/mi_pack.xlsx) from the PII-masked reporting layer (the pipeline runs it last, only after every control passes). **Summary** is a one-page pack: pick a month in the yellow cell and every number updates — money in/out, net flow, transactions, active accounts and overdraft rate vs prior month and same month last year, a region table with loan default rates and card holders, a built-in check that the region total ties to the headline numbers, and a trend chart. **Pivot** is a region × year cross-tab. All 182 numbers are live Excel formulas (SUMIFS, COUNTIFS, INDEX/MATCH) over the data tabs, not pasted values.
 
+### Power BI extracts (M4)
+
+```powershell
+python -m card_analytics.bi_extracts --db sqlite:///cardrisk.db
+```
+
+Writes three CSVs to `dashboards/powerbi/extracts/` from the masked reporting layer: spend, money in, active accounts and active cards by month and region, and the loan book (loans, delinquent, defaulted, exposure) by start year and region. [docs/powerbi-dashboard.md](docs/powerbi-dashboard.md) is the step-by-step build: load and model, DAX measures, page layout, and the totals to check against (682 loans, 76 defaults = 11.1%, 45 delinquent). Berka has no fraud labels, so the risk KPI is default rate, not fraud rate. The dashboard file and screenshot are not in the repo yet.
+
 ### Customer segmentation (M5)
 
 ```powershell
@@ -162,6 +173,15 @@ Berka has no fraud labels, so the risk model predicts **loan default**. Features
 
 Logistic regression wins the near-tie because it's explainable. At the chosen threshold it catches **75% of defaults** while flagging 22% of loans; 1 in 3 flagged loans defaults vs 1 in 9 at random. Biggest drivers: low pre-loan balance, a cash-heavy spending mix, overdrafts and penalty interest. Full details, the precision-recall curve and limitations are in the [model card](docs/model-card.md).
 
+### Complaint classifier (M6)
+
+```powershell
+python -m card_analytics.complaints                       # generated labelled set
+python -m card_analytics.complaints --csv complaints.csv  # CFPB credit-card complaints export
+```
+
+spaCy lemmatizes and cleans the text (numbers and `XXXX` redactions masked, stop words dropped), then TF-IDF (1-2 grams) feeds a logistic regression with five labels: fraud, disputed charge, fees/interest, card not received, other. Results and the confusion matrix are in [docs/complaints.md](docs/complaints.md). The default labelled set is **generated from templates**, so its ~98% accuracy shows the pipeline works, not how it would do on real complaints; run it on the CFPB data for a realistic number (issues are mapped to the five labels in `map_cfpb_issue`).
+
 ### Colleague assistant (M7)
 
 ```powershell
@@ -170,7 +190,9 @@ python -m card_analytics.assistant "Why is card ownership left out of the defaul
 python -m card_analytics.assistant --eval
 ```
 
-Ask in plain English; Claude answers with citations using three read-only tools: **search the docs** (section-level, cited like `docs/model-card.md#threshold`), **list tables**, and **run SQL** behind a guard (SELECT only, PII-masked tables only, read-only connection). The same tools run as an **MCP server** for Claude Desktop / Claude Code. A 50-question eval set checks retrieval and SQL offline (50/50, runs in CI) and Claude's answers online (target 85%). Details: [assistant/README.md](assistant/README.md).
+Ask in plain English; Claude answers with citations using three read-only tools: **search the docs** (section-level, cited like `docs/model-card.md#threshold`), **list tables**, and **run SQL** behind a guard (SELECT only, PII-masked tables only, read-only connection). The same tools run as an **MCP server** for Claude Desktop / Claude Code. A 50-question eval set checks retrieval and SQL offline (50/50, runs in CI) and Claude's answers online (target 85%).
+
+With `--platform`, Claude can also read live accounts and transactions from [card-banking-platform](https://github.com/mukesh132001/card-banking-platform) (`GET /api/accounts`, `GET /api/accounts/{id}/transactions`, JWT login). It is read-only, asks you to confirm every call before any request is made, and masks card and account numbers. A 14-question eval runs offline against a fake platform (14/14). The platform's login path and token field are assumptions to verify against the real service. Details: [assistant/README.md](assistant/README.md).
 
 ## Related
 
