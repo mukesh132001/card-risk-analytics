@@ -6,3 +6,4 @@ openpyxl>=3.1
 scikit-learn>=1.4
 anthropic>=0.40
 mcp>=1.2
+spacy>=3.7
